@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Orders collection: only authenticated users can read.
+    // Create: request.auth.uid must match ownerUid field provided in the new document.
+    // Update/Delete: only the original owner (resource.data.ownerUid) may modify/delete.
+    match /orders/{orderId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.ownerUid;
+      allow update, delete: if request.auth != null
+        && resource.data.ownerUid == request.auth.uid;
+    }
+
+    // Profiles: authenticated users may read any profile. Writes are restricted to
+    // the profile owner (document id equals username and document contains ownerUid).
+    match /profiles/{username} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.resource.data.ownerUid == request.auth.uid;
+    }
+
+    // Users collection mirror (optional). Restrict writes similarly.
+    match /users/{username} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.resource.data.ownerUid == request.auth.uid;
+    }
+
+    // Notifications fallback used by clients to notify other devices while
+    // app processes are alive. Allow authenticated users to create and read,
+    // but require that the actorId equals the calling user's uid and that
+    // required fields are present and valid.
+    match /notifications/{nid} {
+      allow read: if request.auth != null;
+
+      allow create: if request.auth != null
+        // actorId must be provided and must equal the authenticated uid
+        && request.resource.data.actorId is string
+        && request.resource.data.actorId == request.auth.uid
+
+        // required fields
+        && request.resource.data.keys().hasAll(['action', 'orderId', 'actorId', 'createdAt'])
+
+        // validate action
+        && (request.resource.data.action == 'created'
+            || request.resource.data.action == 'updated'
+            || request.resource.data.action == 'deleted')
+
+        // orderId must be a string
+        && request.resource.data.orderId is string;
+
+      // prevent clients from updating/deleting notifications after creation
+      allow update, delete: if false;
+    }
+  }
+}
