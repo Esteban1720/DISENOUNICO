@@ -3,14 +3,14 @@ import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-import '../services/orders_service.dart';
-import '../services/auth_service.dart';
-import '../models/order.dart';
-import '../widgets/order_tile.dart';
+import '../servicios/servicio_pedidos.dart';
+import '../servicios/servicio_autenticacion.dart';
+import '../modelos/pedido.dart';
+import '../componentes/ficha_pedido.dart';
 import 'order_form_screen.dart';
 import 'order_detail_screen.dart';
 import 'profile_screen.dart';
-import '../utils/screen.dart';
+import '../utilidades/pantalla.dart';
 import '../theme.dart'; // Importa tu tema global
 
 class OrdersListScreen extends StatefulWidget {
@@ -25,11 +25,10 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final ordersService = Provider.of<OrdersService>(context, listen: false);
-    final auth = Provider.of<AuthService>(context);
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    final ownerId = auth.username ?? uid;
-    final padding = context.wPct(0.03);
+    final ordersService = Provider.of<ServicioPedidos>(context, listen: false);
+    final auth = Provider.of<ServicioAutenticacion>(context);
+
+    final padding = context.anchoPct(0.03);
     final theme = Theme.of(context);
 
     final contact =
@@ -44,7 +43,9 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
             tooltip: 'Cerrar sesión',
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              await Provider.of<AuthService>(context, listen: false).logout();
+              final authSvc =
+                  Provider.of<ServicioAutenticacion>(context, listen: false);
+              await authSvc.logout();
             },
           ),
         ],
@@ -52,7 +53,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
       body: Padding(
         padding: EdgeInsets.symmetric(
           horizontal: padding,
-          vertical: context.hPct(0.02),
+          vertical: context.altoPct(0.02),
         ),
         child: Column(
           children: [
@@ -61,11 +62,11 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                   borderRadius: BorderRadius.circular(16)),
               elevation: 6,
               child: Padding(
-                padding: EdgeInsets.all(context.wPct(0.04)),
+                padding: EdgeInsets.all(context.anchoPct(0.04)),
                 child: Row(
                   children: [
                     finalAvatar(context, auth),
-                    SizedBox(width: context.wPct(0.04)),
+                    SizedBox(width: context.anchoPct(0.04)),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -73,16 +74,16 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                           Text(
                             auth.displayName ?? (auth.username ?? '—'),
                             style: TextStyle(
-                              fontSize: context.sp(24),
+                              fontSize: context.tamTexto(24),
                               fontWeight: FontWeight.w700,
                               color: theme.colorScheme.primary,
                             ),
                           ),
-                          SizedBox(height: context.hPct(0.006)),
+                          SizedBox(height: context.altoPct(0.006)),
                           Text(
                             auth.username ?? contact,
                             style: TextStyle(
-                              fontSize: context.sp(16),
+                              fontSize: context.tamTexto(16),
                               color: Colors.black54,
                             ),
                           ),
@@ -91,11 +92,11 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                     ),
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        minimumSize:
-                            Size(context.wPct(0.15), context.hPct(0.075)),
+                        minimumSize: Size(
+                            context.anchoPct(0.15), context.altoPct(0.075)),
                         padding: EdgeInsets.symmetric(
-                          horizontal: context.wPct(0.015),
-                          vertical: context.hPct(0.008),
+                          horizontal: context.anchoPct(0.015),
+                          vertical: context.altoPct(0.008),
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -106,7 +107,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                       ),
                       icon: const Icon(Icons.person_outline, size: 22),
                       label: Text('Editar',
-                          style: TextStyle(fontSize: context.sp(14))),
+                          style: TextStyle(fontSize: context.tamTexto(14))),
                       onPressed: () => Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -117,7 +118,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                 ),
               ),
             ),
-            SizedBox(height: context.hPct(0.02)),
+            SizedBox(height: context.altoPct(0.02)),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -133,7 +134,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                         : theme.colorScheme.primary,
                   ),
                 ),
-                SizedBox(width: context.wPct(0.03)),
+                SizedBox(width: context.anchoPct(0.03)),
                 ChoiceChip(
                   label: const Text('Realizados'),
                   selected: _statusFilter == 'done',
@@ -148,10 +149,10 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                 ),
               ],
             ),
-            SizedBox(height: context.hPct(0.02)),
+            SizedBox(height: context.altoPct(0.02)),
             Expanded(
-              child: StreamBuilder<List<OrderModel>>(
-                stream: ordersService.ordersStream(),
+              child: StreamBuilder<List<Pedido>>(
+                stream: ordersService.flujoPedidos(),
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
                     return Center(
@@ -164,8 +165,8 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
 
                   final orders = snapshot.data ?? [];
 
-                  List<OrderModel> visible = orders.where((o) {
-                    final isDone = (o.status == 'done') || (o.paid == true);
+                  List<Pedido> visible = orders.where((o) {
+                    final isDone = (o.estado == 'done') || (o.pagado == true);
                     if (_statusFilter == 'done') return isDone;
                     return !isDone;
                   }).toList();
@@ -176,15 +177,15 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
 
                   return ListView.builder(
                     padding: EdgeInsets.only(
-                      top: context.hPct(0.01),
-                      bottom: context.hPct(0.02),
+                      top: context.altoPct(0.01),
+                      bottom: context.altoPct(0.02),
                     ),
                     itemCount: visible.length,
                     itemBuilder: (context, index) {
                       final o = visible[index];
                       return Padding(
                         padding: EdgeInsets.symmetric(
-                          vertical: context.hPct(0.009),
+                          vertical: context.altoPct(0.009),
                         ),
                         child: Dismissible(
                           key: ValueKey(o.id),
@@ -194,48 +195,49 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             alignment: Alignment.centerLeft,
-                            padding: EdgeInsets.only(left: context.wPct(0.04)),
+                            padding:
+                                EdgeInsets.only(left: context.anchoPct(0.04)),
                             child: const Icon(Icons.check, color: Colors.white),
                           ),
                           direction: DismissDirection.startToEnd,
                           confirmDismiss: (direction) async {
                             final isDone =
-                                (o.status == 'done') || (o.paid == true);
+                                (o.estado == 'done') || (o.pagado == true);
                             if (isDone) return false;
 
                             final confirm = await showDialog<bool>(
                               context: context,
-                              builder: (_) => AlertDialog(
+                              builder: (dialogContext) => AlertDialog(
                                 title: const Text('Marcar como realizado'),
                                 content: const Text(
                                     '¿Deseas marcar este pedido como realizado?'),
                                 actions: [
                                   TextButton(
                                       onPressed: () =>
-                                          Navigator.pop(context, false),
+                                          Navigator.pop(dialogContext, false),
                                       child: const Text('Cancelar')),
                                   TextButton(
                                       onPressed: () =>
-                                          Navigator.pop(context, true),
+                                          Navigator.pop(dialogContext, true),
                                       child: const Text('Sí')),
                                 ],
                               ),
                             );
                             if (confirm ?? false) {
+                              // ignore: use_build_context_synchronously
+                              final messenger = ScaffoldMessenger.of(context);
                               try {
                                 await ordersService.markAsDone(o.id);
                               } catch (e) {
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Error: $e')),
-                                  );
-                                }
+                                messenger.showSnackBar(
+                                  SnackBar(content: Text('Error: $e')),
+                                );
                               }
                             }
                             return confirm ?? false;
                           },
-                          child: OrderTile(
-                            order: o,
+                          child: FichaPedido(
+                            pedido: o,
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -264,8 +266,8 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
     );
   }
 
-  Widget finalAvatar(BuildContext context, AuthService auth) {
-    final avatarSize = context.minPct(0.22);
+  Widget finalAvatar(BuildContext context, ServicioAutenticacion auth) {
+    final avatarSize = context.minimoPct(0.22);
     final initials = (auth.displayName ?? '')
         .split(' ')
         .map((e) => e.isEmpty ? '' : e[0])
@@ -289,7 +291,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                     child: Text(
                       initials,
                       style: TextStyle(
-                        fontSize: context.sp(18),
+                        fontSize: context.tamTexto(18),
                         color: theme.colorScheme.primary,
                       ),
                     ),
@@ -302,7 +304,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                   child: Text(
                     initials,
                     style: TextStyle(
-                      fontSize: context.sp(18),
+                      fontSize: context.tamTexto(18),
                       color: theme.colorScheme.primary,
                     ),
                   ),

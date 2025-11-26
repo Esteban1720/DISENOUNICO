@@ -1,11 +1,12 @@
 // lib/screens/login_screen.dart
+// ignore_for_file: use_build_context_synchronously
 // Versión: logo más grande y desplazado un poquito hacia arriba.
 
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/auth_service.dart';
-import '../utils/screen.dart';
+import '../servicios/servicio_autenticacion.dart';
+import '../utilidades/pantalla.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -53,7 +54,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _ensureVisibleFor(FocusNode node) async {
     await Future.delayed(const Duration(milliseconds: 80));
-    if (!mounted) return;
     final ctx = node.context;
     if (ctx == null) return;
     Scrollable.ensureVisible(ctx,
@@ -73,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
+      final auth = Provider.of<ServicioAutenticacion>(context, listen: false);
       final ok = await auth.login(_userCtrl.text.trim(), _passCtrl.text.trim());
 
       if (!mounted) return;
@@ -98,7 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     // Tamaños responsivos ajustados para logo más grande
     final logoPct = keyboardOpen ? 0.18 : 0.40;
-    final baseLogoSize = context.minPct(logoPct);
+    final baseLogoSize = context.minimoPct(logoPct);
     // Multiplicador mayor para que el logo sea más grande
     final logoSize = math.min(baseLogoSize * 4.2, mq.size.height * 0.42);
 
@@ -109,10 +109,10 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Center(
           child: SingleChildScrollView(
             padding: EdgeInsets.only(
-              left: context.wPct(0.06),
-              right: context.wPct(0.06),
-              top: context.hPct(0.03),
-              bottom: bottomInset + context.hPct(0.03),
+              left: context.anchoPct(0.06),
+              right: context.anchoPct(0.06),
+              top: context.altoPct(0.03),
+              bottom: bottomInset + context.altoPct(0.03),
             ),
             child: ConstrainedBox(
               constraints: BoxConstraints(
@@ -123,7 +123,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   // Logo más grande y desplazado un poco hacia arriba.
                   Transform.translate(
-                    offset: Offset(0, -context.hPct(0.03)),
+                    offset: Offset(0, -context.altoPct(0.03)),
                     child: SizedBox(
                       height: logoSize,
                       child: Image.asset(
@@ -134,7 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
 
-                  SizedBox(height: context.hPct(0.01)),
+                  SizedBox(height: context.altoPct(0.01)),
 
                   Container(
                     decoration: BoxDecoration(
@@ -165,7 +165,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
 
-                  SizedBox(height: context.hPct(0.03)),
+                  SizedBox(height: context.altoPct(0.03)),
                 ],
               ),
             ),
@@ -206,7 +206,7 @@ class _LoginForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final labelStyle = TextStyle(
-      fontSize: context.sp(14),
+      fontSize: context.tamTexto(14),
       fontWeight: FontWeight.w600,
       color: accentTeal,
     );
@@ -241,7 +241,7 @@ class _LoginForm extends StatelessWidget {
             Center(
               child: Text('Gestiona tus pedidos',
                   style: TextStyle(
-                    fontSize: context.sp(18),
+                    fontSize: context.tamTexto(18),
                     fontWeight: FontWeight.w700,
                     color: accentTeal,
                   )),
@@ -272,7 +272,7 @@ class _LoginForm extends StatelessWidget {
                     FocusScope.of(context).requestFocus(passFocus),
               ),
             ),
-            SizedBox(height: context.hPct(0.03)),
+            SizedBox(height: context.altoPct(0.03)),
             Text('Contraseña', style: labelStyle),
             const SizedBox(height: 8),
             Container(
@@ -294,7 +294,7 @@ class _LoginForm extends StatelessWidget {
                 onFieldSubmitted: (_) => onSubmit(),
               ),
             ),
-            SizedBox(height: context.hPct(0.04)),
+            SizedBox(height: context.altoPct(0.04)),
             SizedBox(
               height: 56,
               child: ElevatedButton(
@@ -320,7 +320,7 @@ class _LoginForm extends StatelessWidget {
                       )
                     : Text('INICIAR SESIÓN',
                         style: TextStyle(
-                          fontSize: context.sp(16),
+                          fontSize: context.tamTexto(16),
                           fontWeight: FontWeight.w700,
                           letterSpacing: 1.2,
                         )),

@@ -1,9 +1,9 @@
 // lib/screens/profile_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/auth_service.dart';
-import '../services/orders_service.dart';
-import '../utils/screen.dart';
+import '../servicios/servicio_autenticacion.dart';
+import '../servicios/servicio_pedidos.dart';
+import '../utilidades/pantalla.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -19,7 +19,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    final auth = context.read<AuthService>();
+    final auth = context.read<ServicioAutenticacion>();
     _nameCtrl = TextEditingController(text: auth.displayName ?? '');
   }
 
@@ -30,8 +30,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _pickAndUpload() async {
-    final ordersService = Provider.of<OrdersService>(context, listen: false);
-    final auth = Provider.of<AuthService>(context, listen: false);
+    final ordersService = Provider.of<ServicioPedidos>(context, listen: false);
+    final auth = Provider.of<ServicioAutenticacion>(context, listen: false);
     setState(() => _saving = true);
     try {
       final file = await ordersService.pickLocalImage();
@@ -54,7 +54,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _saveName() async {
-    final auth = Provider.of<AuthService>(context, listen: false);
+    final auth = Provider.of<ServicioAutenticacion>(context, listen: false);
     final name = _nameCtrl.text.trim();
     await auth.setDisplayName(name);
     if (!mounted) return;
@@ -64,9 +64,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthService>();
-    final avatarRadius = context.minPct(0.45) / 2;
-    final padding = context.wPct(0.06);
+    final auth = context.watch<ServicioAutenticacion>();
+    final avatarRadius = context.minimoPct(0.45) / 2;
+    final padding = context.anchoPct(0.06);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Mi perfil')),
@@ -88,6 +88,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         backgroundImage: auth.photoUrl != null
                             ? NetworkImage(auth.photoUrl!)
                             : null,
+                        backgroundColor: const Color(0xFF083B3D),
                         child: auth.photoUrl == null
                             ? Text(
                                 (auth.displayName ?? '')
@@ -98,9 +99,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 style: TextStyle(
                                     fontSize: avatarRadius * 0.6,
                                     color: Colors.white))
-                            : null,
-                        backgroundColor: const Color(0xFF083B3D)),
-                    SizedBox(height: context.hPct(0.03)),
+                            : null),
+                    SizedBox(height: context.altoPct(0.03)),
                     ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF083B3D),
@@ -116,20 +116,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     strokeWidth: 2, color: Colors.white))
                             : const Text('Cambiar foto'),
                         onPressed: _saving ? null : _pickAndUpload),
-                    SizedBox(height: context.hPct(0.03)),
+                    SizedBox(height: context.altoPct(0.03)),
 
                     // Etiqueta fuera del TextField
-                    Align(
+                    const Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
                         'Nombre a mostrar',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Color(0xFF083B3D),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
-                    SizedBox(height: context.hPct(0.01)),
+                    SizedBox(height: context.altoPct(0.01)),
 
                     TextField(
                       controller: _nameCtrl,
@@ -149,7 +149,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
 
-                    SizedBox(height: context.hPct(0.02)),
+                    SizedBox(height: context.altoPct(0.02)),
                     Row(children: [
                       Expanded(
                           child: ElevatedButton.icon(
@@ -162,7 +162,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               icon: const Icon(Icons.save),
                               label: const Text('Guardar')))
                     ]),
-                    SizedBox(height: context.hPct(0.02)),
+                    SizedBox(height: context.altoPct(0.02)),
                     Text('Usuario: ${auth.username ?? '—'}',
                         style: const TextStyle(color: Colors.black87)),
                   ],

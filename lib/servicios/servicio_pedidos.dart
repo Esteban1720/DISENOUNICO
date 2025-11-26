@@ -1,4 +1,4 @@
-// lib/services/orders_service.dart
+// lib/servicios/servicio_pedidos.dart
 import 'dart:io';
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -10,10 +10,10 @@ import 'package:path/path.dart' as path;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
-import '../models/order.dart';
+import '../modelos/pedido.dart';
 import '../config.dart';
 
-class OrdersService {
+class ServicioPedidos {
   CollectionReference get _orders =>
       FirebaseFirestore.instance.collection('orders');
   CollectionReference get _users =>
@@ -23,8 +23,7 @@ class OrdersService {
 
   final ImagePicker _picker = ImagePicker();
 
-  /// Intenta resolver el uid real a partir de un username guardado en /users o /profiles.
-  Future<String?> _resolveUidFromUsername(String username) async {
+  Future<String?> _resolverUidDesdeUsername(String username) async {
     try {
       final uDoc = await _users.doc(username).get();
       if (uDoc.exists && uDoc.data() != null) {
@@ -49,8 +48,7 @@ class OrdersService {
     return null;
   }
 
-  /// Devuelve displayName (perfil) para un uid, buscando primero en /profiles y luego en /users.
-  Future<String?> _displayNameForUid(String uid) async {
+  Future<String?> _nombreParaUid(String uid) async {
     try {
       final q1 =
           await _profiles.where('ownerUid', isEqualTo: uid).limit(1).get();
@@ -62,7 +60,7 @@ class OrdersService {
         }
       }
     } catch (e) {
-      debugPrint('_displayNameForUid: profiles lookup error: $e');
+      debugPrint('_nombreParaUid: profiles lookup error: $e');
     }
     try {
       final q2 = await _users.where('ownerUid', isEqualTo: uid).limit(1).get();
@@ -74,73 +72,67 @@ class OrdersService {
         }
       }
     } catch (e) {
-      debugPrint('_displayNameForUid: users lookup error: $e');
+      debugPrint('_nombreParaUid: users lookup error: $e');
     }
     return null;
   }
 
-  /// Construye una lista base de colaboradores incluyendo david/maria y el owner actual.
-  Future<List<String>> _defaultCollaborators(String ownerUid) async {
+  Future<List<String>> _colaboradoresPorDefecto(String ownerUid) async {
     final set = <String>{};
     try {
-      final david = await _resolveUidFromUsername('david1720');
-      final maria = await _resolveUidFromUsername('maria1720');
+      final david = await _resolverUidDesdeUsername('david1720');
+      final maria = await _resolverUidDesdeUsername('maria1720');
       if (david != null && david.isNotEmpty) set.add(david);
       if (maria != null && maria.isNotEmpty) set.add(maria);
     } catch (e) {
-      debugPrint('_defaultCollaborators: error resolving users: $e');
+      debugPrint('_colaboradoresPorDefecto: error resolving users: $e');
     }
     if (ownerUid.isNotEmpty) set.add(ownerUid);
     return set.toList();
   }
 
-  Stream<List<OrderModel>> ordersStream({String? ownerUid, String? status}) {
+  Stream<List<Pedido>> flujoPedidos({String? ownerUid, String? status}) {
     try {
       Query q = _orders.orderBy('createdAt', descending: true);
       if (ownerUid != null) q = q.where('ownerUid', isEqualTo: ownerUid);
       if (status != null) q = q.where('status', isEqualTo: status);
       return q
           .snapshots()
-          .map((snap) => snap.docs.map((d) => OrderModel.fromDoc(d)).toList());
+          .map((snap) => snap.docs.map((d) => Pedido.fromDoc(d)).toList());
     } catch (e) {
-      debugPrint('ordersStream() error: $e');
-      return Stream.value(<OrderModel>[]);
+      debugPrint('flujoPedidos() error: $e');
+      return Stream.value(<Pedido>[]);
     }
   }
 
-  /// Crea un pedido — AQUI se establece ownerUid/ownerId/ownerName y collaborators.
-  Future<String> createOrder(Map<String, dynamic> data) async {
+  Future<String> crearPedido(Map<String, dynamic> data) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) throw Exception('Usuario no autenticado');
 
     data['createdAt'] = FieldValue.serverTimestamp();
 
-    // Garantizar ownerUid/ownerId/ownerName en el documento de creación (reglas requieren esto)
     data['ownerUid'] = user.uid;
     data['ownerId'] = user.uid;
     data['ownerName'] =
         data['ownerName'] ?? user.displayName ?? user.email ?? '';
 
-    // Validación mínima útil
-    if (!(data['customerName'] is String)) {
+    if (data['customerName'] is! String) {
       data['customerName'] = (data['customerName'] ?? '').toString();
     }
-    if (!(data['price'] is num)) {
+    if (data['price'] is! num) {
       final maybe = double.tryParse(
           (data['price'] ?? '').toString().replaceAll(',', '.'));
       data['price'] = maybe ?? 0.0;
     }
 
-    // Construir lista inicial de colaboradores (incluye david1720 y maria1720 si existen)
     try {
-      data['collaborators'] = await _defaultCollaborators(user.uid);
+      data['collaborators'] = await _colaboradoresPorDefecto(user.uid);
     } catch (e) {
       data['collaborators'] = [user.uid];
     }
 
     final docRef = await _orders.add(data);
 
-    // Notificación de fallback: incluir recipients = collaborators - actorUid
     try {
       final List<dynamic> collaborators =
           List<dynamic>.from(data['collaborators'] ?? [user.uid]);
@@ -148,9 +140,7 @@ class OrdersService {
           .where((c) => c is String && c != user.uid)
           .map((e) => e as String)
           .toList();
-
-      // Resolvemos el displayName del actor (si existe)
-      final actorDisplay = await _displayNameForUid(user.uid);
+      final actorDisplay = await _nombreParaUid(user.uid);
       final actorDisplayName =
           actorDisplay ?? data['ownerName'] ?? user.displayName ?? '';
 
@@ -164,19 +154,17 @@ class OrdersService {
         'createdAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {
-      debugPrint('createOrder: failed writing notification doc: $e');
+      debugPrint('crearPedido: failed writing notification doc: $e');
     }
 
     return docRef.id;
   }
 
-  /// Actualiza un pedido.
-  /// Importante: **no** modificamos ownerUid/ownerId/collaborators aquí para evitar violar reglas.
-  Future<void> updateOrder(String orderId, Map<String, dynamic> data) async {
+  Future<void> actualizarPedido(
+      String orderId, Map<String, dynamic> data) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) throw Exception('Usuario no autenticado');
 
-    // proteger campos sensibles: eliminarlos si vienen en data (owner sólo se cambia por owner explícito)
     final sanitized = Map<String, dynamic>.from(data);
     sanitized.remove('ownerUid');
     sanitized.remove('ownerId');
@@ -187,7 +175,6 @@ class OrdersService {
 
     await _orders.doc(orderId).update(sanitized);
 
-    // notificación: leer doc actualizado para obtener collaborators actuales
     try {
       final doc = await _orders.doc(orderId).get();
       final d = doc.data() as Map<String, dynamic>? ?? {};
@@ -197,9 +184,7 @@ class OrdersService {
           .where((c) => c is String && c != user.uid)
           .map((e) => e as String)
           .toList();
-
-      // Resolvemos el displayName del actor (si existe)
-      final actorDisplay = await _displayNameForUid(user.uid);
+      final actorDisplay = await _nombreParaUid(user.uid);
       final actorDisplayName =
           actorDisplay ?? sanitized['ownerName'] ?? user.displayName ?? '';
 
@@ -214,18 +199,17 @@ class OrdersService {
         'createdAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {
-      debugPrint('updateOrder: failed writing notification doc: $e');
+      debugPrint('actualizarPedido: failed writing notification doc: $e');
     }
   }
 
-  Future<void> deleteOrder(String orderId) async {
+  Future<void> eliminarPedido(String orderId) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) throw Exception('Usuario no autenticado');
 
     try {
       final doc = await _orders.doc(orderId).get();
       final data = doc.data() as Map<String, dynamic>? ?? {};
-      // Antes de eliminar, guardamos collaborators para enviar notificación
       final collaborators = List<dynamic>.from(data['collaborators'] ?? []);
       await _orders.doc(orderId).delete();
       try {
@@ -233,9 +217,7 @@ class OrdersService {
             .where((c) => c is String && c != user.uid)
             .map((e) => e as String)
             .toList();
-
-        // Resolvemos el displayName del actor (si existe)
-        final actorDisplay = await _displayNameForUid(user.uid);
+        final actorDisplay = await _nombreParaUid(user.uid);
         final actorDisplayName = actorDisplay ?? data['ownerName'] ?? '';
 
         await FirebaseFirestore.instance.collection('notifications').add({
@@ -248,19 +230,18 @@ class OrdersService {
           'createdAt': FieldValue.serverTimestamp(),
         });
       } catch (e) {
-        debugPrint('deleteOrder: failed writing notification doc: $e');
+        debugPrint('eliminarPedido: failed writing notification doc: $e');
       }
     } catch (e) {
       debugPrint(
-          'deleteOrder: error deleting order or writing notification: $e');
-      // intentar de nuevo sin notificación
+          'eliminarPedido: error deleting order or writing notification: $e');
       try {
         await _orders.doc(orderId).delete();
       } catch (_) {}
     }
   }
 
-  Future<DocumentSnapshot> getOrderDoc(String orderId) async {
+  Future<DocumentSnapshot> obtenerDocPedido(String orderId) async {
     return await _orders.doc(orderId).get();
   }
 
@@ -303,10 +284,9 @@ class OrdersService {
     }
   }
 
-  Future<void> createOrderWithImage(
+  Future<void> crearPedidoConImagen(
       {required Map<String, dynamic> orderData}) async {
-    // Lógica: createOrder ya maneja ownerUid y collaborators
-    final orderId = await createOrder(orderData);
+    final orderId = await crearPedido(orderData);
 
     final file = await pickLocalImage();
     if (file == null) return;
@@ -347,7 +327,6 @@ class OrdersService {
     });
   }
 
-  /// Añade un colaborador (solo owner debe exponer esto en la UI)
   Future<void> addCollaborator(String orderId, String collaboratorUid) async {
     await _orders.doc(orderId).update({
       'collaborators': FieldValue.arrayUnion([collaboratorUid]),
@@ -355,7 +334,6 @@ class OrdersService {
     });
   }
 
-  /// Remueve un colaborador
   Future<void> removeCollaborator(
       String orderId, String collaboratorUid) async {
     await _orders.doc(orderId).update({

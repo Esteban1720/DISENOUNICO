@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../services/orders_service.dart';
-import '../utils/screen.dart';
-import '../services/auth_service.dart';
+import '../servicios/servicio_pedidos.dart';
+import '../utilidades/pantalla.dart';
+import '../servicios/servicio_autenticacion.dart';
 
 class OrderFormScreen extends StatefulWidget {
   final String? orderId;
@@ -64,9 +64,9 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
   }
 
   Future<void> _loadOrder(String orderId) async {
-    final service = Provider.of<OrdersService>(context, listen: false);
+    final service = Provider.of<ServicioPedidos>(context, listen: false);
     try {
-      final doc = await service.getOrderDoc(orderId);
+      final doc = await service.obtenerDocPedido(orderId);
       if (!doc.exists) return;
       final map = doc.data() as Map<String, dynamic>;
       setState(() {
@@ -87,7 +87,7 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
 
   Future<void> _pickPreviewImage() async {
     if (_isReadOnly) return;
-    final service = Provider.of<OrdersService>(context, listen: false);
+    final service = Provider.of<ServicioPedidos>(context, listen: false);
     final file = await service.pickLocalImage();
     if (file != null) {
       setState(() {
@@ -143,8 +143,8 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
     setState(() => _saving = true);
     _updateCanSave();
 
-    final ordersService = Provider.of<OrdersService>(context, listen: false);
-    final auth = Provider.of<AuthService>(context, listen: false);
+    final ordersService = Provider.of<ServicioPedidos>(context, listen: false);
+    final auth = Provider.of<ServicioAutenticacion>(context, listen: false);
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
     if (currentUid == null) {
       if (mounted) {
@@ -169,13 +169,13 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
 
     try {
       if (widget.orderId != null) {
-        await ordersService.updateOrder(widget.orderId!, data);
+        await ordersService.actualizarPedido(widget.orderId!, data);
         if (_previewImageFile != null) {
           final imageUrl =
               await ordersService.uploadToCloudinary(_previewImageFile!);
           if (imageUrl != null) {
             await ordersService
-                .updateOrder(widget.orderId!, {'imageUrl': imageUrl});
+                .actualizarPedido(widget.orderId!, {'imageUrl': imageUrl});
           }
         }
       } else {
@@ -184,14 +184,15 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
         data['ownerName'] = auth.username ?? auth.displayName ?? '';
 
         if (_previewImageFile != null) {
-          final orderId = await ordersService.createOrder({...data});
+          final orderId = await ordersService.crearPedido({...data});
           final imageUrl =
               await ordersService.uploadToCloudinary(_previewImageFile!);
           if (imageUrl != null) {
-            await ordersService.updateOrder(orderId, {'imageUrl': imageUrl});
+            await ordersService
+                .actualizarPedido(orderId, {'imageUrl': imageUrl});
           }
         } else {
-          await ordersService.createOrder({...data});
+          await ordersService.crearPedido({...data});
         }
       }
 
@@ -211,9 +212,9 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final sidePad = context.wPct(0.04);
-    final previewHeight = context.hPct(0.28);
-    final btnHeight = context.hPct(0.065);
+    final sidePad = context.anchoPct(0.04);
+    final previewHeight = context.altoPct(0.28);
+    final btnHeight = context.altoPct(0.065);
 
     const mainColor = Color(0xFF083B3D);
 
@@ -237,16 +238,17 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
                 children: [
                   if (_isReadOnly)
                     Padding(
-                      padding: EdgeInsets.only(bottom: context.hPct(0.01)),
+                      padding: EdgeInsets.only(bottom: context.altoPct(0.01)),
                       child: Row(
                         children: [
                           const Icon(Icons.lock, size: 18, color: Colors.white),
-                          SizedBox(width: context.wPct(0.02)),
+                          SizedBox(width: context.anchoPct(0.02)),
                           Expanded(
                               child: Text(
                             'Este pedido está realizado — solo se permite eliminarlo.',
                             style: TextStyle(
-                                fontSize: context.sp(12), color: Colors.white),
+                                fontSize: context.tamTexto(12),
+                                color: Colors.white),
                           )),
                         ],
                       ),
@@ -256,30 +258,30 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    padding: EdgeInsets.all(context.wPct(0.04)),
+                    padding: EdgeInsets.all(context.anchoPct(0.04)),
                     child: Column(
                       children: [
                         _buildTextField(_customerCtrl, 'Nombre del cliente'),
-                        SizedBox(height: context.hPct(0.012)),
+                        SizedBox(height: context.altoPct(0.012)),
                         _buildTextField(_fabricCtrl, 'Tela'),
-                        SizedBox(height: context.hPct(0.012)),
+                        SizedBox(height: context.altoPct(0.012)),
                         _buildTextField(_colorCtrl, 'Color'),
-                        SizedBox(height: context.hPct(0.012)),
+                        SizedBox(height: context.altoPct(0.012)),
                         _buildTextField(_sizeCtrl, 'Talla'),
-                        SizedBox(height: context.hPct(0.012)),
+                        SizedBox(height: context.altoPct(0.012)),
                         _buildTextField(_priceCtrl, 'Precio', isNumber: true),
-                        SizedBox(height: context.hPct(0.012)),
+                        SizedBox(height: context.altoPct(0.012)),
                         _buildTextField(_notesCtrl, 'Notas', maxLines: 3),
                       ],
                     ),
                   ),
-                  SizedBox(height: context.hPct(0.02)),
+                  SizedBox(height: context.altoPct(0.02)),
                   if (_previewImageFile != null) ...[
                     SizedBox(
                         height: previewHeight,
                         child:
                             Image.file(_previewImageFile!, fit: BoxFit.cover)),
-                    SizedBox(height: context.hPct(0.01)),
+                    SizedBox(height: context.altoPct(0.01)),
                   ],
                   Row(
                     children: [
@@ -295,13 +297,13 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
                           ),
                         ),
                       ),
-                      SizedBox(width: context.wPct(0.03)),
+                      SizedBox(width: context.anchoPct(0.03)),
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: _isReadOnly
                               ? null
                               : () async {
-                                  final service = Provider.of<OrdersService>(
+                                  final service = Provider.of<ServicioPedidos>(
                                       context,
                                       listen: false);
                                   final file = await service.pickLocalImage(
@@ -325,7 +327,7 @@ class _OrderFormScreenState extends State<OrderFormScreen> {
                       ),
                     ],
                   ),
-                  SizedBox(height: context.hPct(0.02)),
+                  SizedBox(height: context.altoPct(0.02)),
                   SizedBox(
                     width: double.infinity,
                     height: btnHeight,

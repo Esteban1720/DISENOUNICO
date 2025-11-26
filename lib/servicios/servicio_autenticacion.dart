@@ -1,11 +1,11 @@
-// lib/services/auth_service.dart
+// lib/servicios/servicio_autenticacion.dart
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 
-class AuthService extends ChangeNotifier {
+class ServicioAutenticacion extends ChangeNotifier {
   static const _kUserKey = 'logged_user';
   static const _kDisplayNameKeyPrefix = 'display_name_';
   static const _kPhotoUrlKeyPrefix = 'photo_url_';
@@ -14,12 +14,12 @@ class AuthService extends ChangeNotifier {
   String? _displayName;
   String? _photoUrl;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _profileSub;
-  bool get isLoggedIn => _username != null;
+  bool get estaLogueado => _username != null;
   String? get username => _username;
   String? get displayName => _displayName ?? _friendlyDisplayName(_username);
   String? get photoUrl => _photoUrl;
 
-  // Hard-coded users (only David and Luisa allowed)
+  // Usuarios permitidos (hard-coded)
   static const Map<String, String> _allowed = {
     'david1720': '1006198954',
     'maria1720': '1192738184',
@@ -38,10 +38,6 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Login "local" de tu app (username + password). Además de guardar en prefs,
-  /// aquí garantizamos que exista un documento /users/{username} y /profiles/{username}
-  /// con ownerUid = FirebaseAuth.currentUser?.uid para que otros clientes puedan
-  /// resolver username -> uid y ser incluidos como colaboradores.
   Future<bool> login(String user, String password) async {
     final key = user.trim().toLowerCase();
     final expected = _allowed[key];
@@ -49,8 +45,6 @@ class AuthService extends ChangeNotifier {
     bool ok = expected != null && expected == pass;
     if (ok) {
       _username = key;
-      // If we don't already have a display name saved for this user,
-      // set a friendly default. Photo URL is also loaded per-user.
       final prefs = await SharedPreferences.getInstance();
       final displayKey = '$_kDisplayNameKeyPrefix$key';
       final photoKey = '$_kPhotoUrlKeyPrefix$key';
@@ -61,13 +55,9 @@ class AuthService extends ChangeNotifier {
       } else {
         _displayName = existingName;
       }
-      // Load stored photoUrl for this user (do not overwrite it on login)
       _photoUrl = prefs.getString(photoKey);
       await prefs.setString(_kUserKey, key);
 
-      // Guardar/actualizar en Firestore un mapping username -> ownerUid para que
-      // _defaultCollaborators lo pueda resolver más tarde (y así david/maria se incluyan).
-      // Esto funciona con auth anónima porque request.auth.uid == ownerUid en el cliente.
       try {
         final ownerUid = FirebaseAuth.instance.currentUser?.uid;
         if (ownerUid != null && ownerUid.isNotEmpty) {
@@ -78,7 +68,6 @@ class AuthService extends ChangeNotifier {
             if (_photoUrl != null) 'photoUrl': _photoUrl,
             'updatedAt': now,
           };
-          // write to both collections used by OrdersService._resolveUidFromUsername
           await FirebaseFirestore.instance
               .collection('users')
               .doc(key)
@@ -88,23 +77,23 @@ class AuthService extends ChangeNotifier {
               .doc(key)
               .set(docData, SetOptions(merge: true));
           debugPrint(
-              'AuthService.login: wrote profile/users doc for $key -> $ownerUid');
+              'ServicioAutenticacion.login: wrote profile/users doc for $key -> $ownerUid');
         } else {
           debugPrint(
-              'AuthService.login: no firebase user uid available to write profile doc');
+              'ServicioAutenticacion.login: no firebase user uid available to write profile doc');
         }
       } catch (e) {
-        debugPrint('AuthService: failed writing initial profile/users doc: $e');
+        debugPrint(
+            'ServicioAutenticacion: failed writing initial profile/users doc: $e');
       }
 
-      // Try to sync profile from Firestore so the profile is available on other devices.
       try {
         await _syncProfileFromFirestore(key);
       } catch (e) {
-        debugPrint('AuthService: error syncing profile from Firestore: $e');
+        debugPrint(
+            'ServicioAutenticacion: error syncing profile from Firestore: $e');
       }
-      // Subscribe to realtime updates for this user's profile so changes made
-      // on other devices are received immediately.
+
       _profileSub?.cancel();
       _profileSub = FirebaseFirestore.instance
           .collection('profiles')
@@ -126,10 +115,10 @@ class AuthService extends ChangeNotifier {
         notifyListeners();
       }, onError: (e) => debugPrint('profile snapshot error: $e'));
       notifyListeners();
-      debugPrint('AuthService: login success for $key');
+      debugPrint('ServicioAutenticacion: login success for $key');
       return true;
     }
-    debugPrint('AuthService: login failed for $key');
+    debugPrint('ServicioAutenticacion: login failed for $key');
     return false;
   }
 
@@ -137,11 +126,8 @@ class AuthService extends ChangeNotifier {
     _username = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_kUserKey);
-    // Keep per-user displayName/photoUrl in prefs so they persist across
-    // logouts. Clear in-memory values so UI shows login state.
     _displayName = null;
     _photoUrl = null;
-    // Cancel profile subscription
     await _profileSub?.cancel();
     _profileSub = null;
     notifyListeners();
@@ -155,20 +141,19 @@ class AuthService extends ChangeNotifier {
       try {
         final ownerUid = FirebaseAuth.instance.currentUser?.uid ??
             FirebaseFirestore.instance.app.options.projectId;
-        // Save display name with metadata and ownerUid when possible
         await _saveProfileToFirestore(_username!, {
           'displayName': name,
           'updatedAt': FieldValue.serverTimestamp(),
           'ownerUid': ownerUid,
         });
-        // Also save to profiles collection for compatibility
         await _saveProfileToProfilesCollection(_username!, {
           'displayName': name,
           'updatedAt': FieldValue.serverTimestamp(),
           'ownerUid': ownerUid,
         });
       } catch (e) {
-        debugPrint('AuthService: failed saving displayName to Firestore: $e');
+        debugPrint(
+            'ServicioAutenticacion: failed saving displayName to Firestore: $e');
       }
     }
     notifyListeners();
@@ -198,7 +183,8 @@ class AuthService extends ChangeNotifier {
           'ownerUid': ownerUid,
         });
       } catch (e) {
-        debugPrint('AuthService: failed saving photoUrl to Firestore: $e');
+        debugPrint(
+            'ServicioAutenticacion: failed saving photoUrl to Firestore: $e');
       }
     }
     notifyListeners();
@@ -213,7 +199,8 @@ class AuthService extends ChangeNotifier {
         await _saveProfileToFirestore(_username!, {'fcmToken': token});
         await _saveProfileToProfilesCollection(_username!, {'fcmToken': token});
       } catch (e) {
-        debugPrint('AuthService: failed saving fcmToken to Firestore: $e');
+        debugPrint(
+            'ServicioAutenticacion: failed saving fcmToken to Firestore: $e');
       }
     }
   }
@@ -221,7 +208,6 @@ class AuthService extends ChangeNotifier {
   Future<void> _syncProfileFromFirestore(String username) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      // Fetch both 'users' and 'profiles' documents and merge fields.
       final docUsers = await FirebaseFirestore.instance
           .collection('users')
           .doc(username)
@@ -236,7 +222,6 @@ class AuthService extends ChangeNotifier {
         merged.addAll(docUsers.data()!);
       }
       if (docProfiles.exists && docProfiles.data() != null) {
-        // Only fill missing keys from profiles
         docProfiles.data()!.forEach((k, v) {
           if (!merged.containsKey(k) || merged[k] == null) merged[k] = v;
         });
@@ -253,7 +238,7 @@ class AuthService extends ChangeNotifier {
         await prefs.setString('$_kPhotoUrlKeyPrefix$username', _photoUrl!);
       }
     } catch (e) {
-      debugPrint('AuthService._syncProfileFromFirestore error: $e');
+      debugPrint('ServicioAutenticacion._syncProfileFromFirestore error: $e');
     }
   }
 
@@ -265,7 +250,7 @@ class AuthService extends ChangeNotifier {
           .doc(username)
           .set(updates, SetOptions(merge: true));
     } catch (e) {
-      debugPrint('AuthService._saveProfileToFirestore error: $e');
+      debugPrint('ServicioAutenticacion._saveProfileToFirestore error: $e');
       rethrow;
     }
   }
@@ -278,12 +263,11 @@ class AuthService extends ChangeNotifier {
           .doc(username)
           .set(updates, SetOptions(merge: true));
     } catch (e) {
-      debugPrint('AuthService._saveProfileToFirestore error: $e');
+      debugPrint('ServicioAutenticacion._saveProfileToFirestore error: $e');
       rethrow;
     }
   }
 
-  // Friendly display names used by the app UI.
   static String? _friendlyDisplayName(String? key) {
     if (key == null) return null;
     switch (key) {

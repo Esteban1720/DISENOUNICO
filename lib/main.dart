@@ -1,16 +1,17 @@
 // lib/main.dart
+// ignore_for_file: prefer_const_constructors
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 
-import 'services/orders_service.dart';
-import 'services/auth_service.dart';
+import 'servicios/servicio_pedidos.dart';
+import 'servicios/servicio_autenticacion.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'screens/orders_list_screen.dart';
 import 'screens/login_screen.dart';
 import 'theme.dart';
-import 'services/notification_service.dart';
+import 'servicios/servicio_notificaciones.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 // Top-level background message handler. Must be a top-level function.
@@ -50,7 +51,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // Show notification if message contains a notification payload
   final notification = message.notification;
   if (notification != null) {
-    final androidDetails = AndroidNotificationDetails(
+    const androidDetails = AndroidNotificationDetails(
       'orders_channel',
       'Orders',
       channelDescription: 'Notificaciones de pedidos',
@@ -103,8 +104,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthService()),
-        Provider<OrdersService>(create: (_) => OrdersService()),
+        ChangeNotifierProvider(create: (_) => ServicioAutenticacion()),
+        Provider<ServicioPedidos>(create: (_) => ServicioPedidos()),
       ],
       child: MaterialApp(
         title: 'Diseño Único',
@@ -146,7 +147,7 @@ class _RootState extends State<_Root> {
   }
 
   Future<void> _init() async {
-    final auth = Provider.of<AuthService>(context, listen: false);
+    final auth = Provider.of<ServicioAutenticacion>(context, listen: false);
     await auth.load();
     // Register FCM token (if available) and configure handlers
     try {
@@ -172,7 +173,7 @@ class _RootState extends State<_Root> {
     }
     // Init local notification service and start listening to orders changes
     try {
-      final notif = NotificationService();
+      final notif = ServicioNotificaciones();
       await notif.init();
       await notif.startListening();
     } catch (e) {
@@ -184,8 +185,8 @@ class _RootState extends State<_Root> {
   @override
   Widget build(BuildContext context) {
     if (!_loaded) return const SizedBox.shrink();
-    final auth = Provider.of<AuthService>(context);
-    if (!auth.isLoggedIn) {
+    final auth = Provider.of<ServicioAutenticacion>(context);
+    if (!auth.estaLogueado) {
       return const LoginScreen();
     }
     return const OrdersListScreen();
