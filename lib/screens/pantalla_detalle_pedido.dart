@@ -14,6 +14,7 @@ class PantallaDetallePedido extends StatelessWidget {
   Widget build(BuildContext context) {
     final ordersService = Provider.of<ServicioPedidos>(context, listen: false);
     final imgHeight = context.altoPct(0.35);
+    final theme = Theme.of(context);
 
     final isDone = (order.estado == 'done') || (order.pagado == true);
 
@@ -110,29 +111,185 @@ class PantallaDetallePedido extends StatelessWidget {
         child: ListView(
           children: [
             if (order.imagenUrl != null)
-              SizedBox(
-                  height: imgHeight,
-                  child: CachedNetworkImage(
-                      imageUrl: order.imagenUrl!, fit: BoxFit.cover)),
+              GestureDetector(
+                onTap: () async {
+                  await showDialog(
+                      context: context,
+                      builder: (ctx) {
+                        return GestureDetector(
+                          onTap: () => Navigator.of(ctx).pop(),
+                          child: Container(
+                            color: Colors.black,
+                            child: Center(
+                              child: InteractiveViewer(
+                                child: CachedNetworkImage(
+                                  imageUrl: order.imagenUrl!,
+                                  fit: BoxFit.contain,
+                                  errorWidget: (_, __, ___) => const Icon(
+                                    Icons.broken_image,
+                                    color: Colors.white,
+                                    size: 64,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      });
+                },
+                child: SizedBox(
+                    height: imgHeight,
+                    child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: CachedNetworkImage(
+                            imageUrl: order.imagenUrl!, fit: BoxFit.cover))),
+              ),
             SizedBox(height: context.altoPct(0.02)),
-            Text('Cliente: ${order.nombreCliente}',
-                style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            SizedBox(height: context.altoPct(0.01)),
-            Text('Tela: ${order.tela}'),
-            Text('Color: ${order.color}'),
-            Text('Talla: ${order.talla}'),
-            Text('Precio: \$${order.precio.toStringAsFixed(2)}'),
-            SizedBox(height: context.altoPct(0.01)),
-            Text('Estado: ${order.estado}'),
-            Text('Pagado: ${order.pagado ? 'Sí' : 'No'}'),
-            if (order.notas != null && order.notas!.isNotEmpty) ...[
-              SizedBox(height: context.altoPct(0.01)),
-              Text('Notas: ${order.notas}'),
-            ],
+            Card(
+              color: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              elevation: 4,
+              child: Padding(
+                padding: EdgeInsets.all(context.anchoPct(0.04)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Cliente',
+                        style: TextStyle(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: context.tamTexto(16))),
+                    SizedBox(height: context.altoPct(0.005)),
+                    Text(order.nombreCliente,
+                        style: TextStyle(
+                            fontSize: context.tamTexto(18),
+                            fontWeight: FontWeight.w600)),
+                    SizedBox(height: context.altoPct(0.015)),
+                    _infoRow(context, 'Tela', order.tela, theme),
+                    _infoRow(context, 'Color', order.color, theme),
+                    _infoRow(context, 'Talla', order.talla, theme),
+                    _infoRow(context, 'Precio',
+                        '\$${order.precio.toStringAsFixed(2)}', theme),
+                    SizedBox(height: context.altoPct(0.01)),
+                    Row(
+                      children: [
+                        Expanded(
+                            child:
+                                _badge(context, 'Estado', order.estado, theme)),
+                        SizedBox(width: context.anchoPct(0.02)),
+                        Expanded(
+                            child: _badge(context, 'Pagado',
+                                order.pagado ? 'Sí' : 'No', theme)),
+                      ],
+                    ),
+                    if (order.notas != null && order.notas!.isNotEmpty) ...[
+                      SizedBox(height: context.altoPct(0.015)),
+                      Text('Notas',
+                          style: TextStyle(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: context.tamTexto(16))),
+                      SizedBox(height: context.altoPct(0.005)),
+                      Text(order.notas!,
+                          style: TextStyle(fontSize: context.tamTexto(15))),
+                    ]
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _infoRow(
+      BuildContext context, String label, String value, ThemeData theme) {
+    IconData icon;
+    switch (label.toLowerCase()) {
+      case 'tela':
+        icon = Icons.straighten;
+        break;
+      case 'color':
+        icon = Icons.color_lens;
+        break;
+      case 'talla':
+        icon = Icons.format_size;
+        break;
+      case 'precio':
+        icon = Icons.attach_money;
+        break;
+      default:
+        icon = Icons.info_outline;
+    }
+
+    return Column(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon,
+                color: theme.colorScheme.primary, size: context.tamTexto(18)),
+            SizedBox(width: context.anchoPct(0.03)),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label,
+                      style: TextStyle(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: context.tamTexto(13))),
+                  SizedBox(height: context.altoPct(0.004)),
+                  Text(value,
+                      style: TextStyle(
+                          fontSize: context.tamTexto(16),
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: context.altoPct(0.01)),
+        const Divider(height: 1),
+        SizedBox(height: context.altoPct(0.01)),
+      ],
+    );
+  }
+
+  Widget _badge(
+      BuildContext context, String label, String value, ThemeData theme) {
+    final bool positive = value.toLowerCase() == 'sí' ||
+        value.toLowerCase() == 'si' ||
+        value.toLowerCase() == 'yes';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: TextStyle(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w700,
+                fontSize: context.tamTexto(13))),
+        SizedBox(height: context.altoPct(0.005)),
+        Container(
+          padding: EdgeInsets.symmetric(
+              horizontal: context.anchoPct(0.03),
+              vertical: context.altoPct(0.008)),
+          decoration: BoxDecoration(
+            color: positive ? theme.colorScheme.primary : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: theme.colorScheme.primary),
+          ),
+          child: Center(
+            child: Text(value,
+                style: TextStyle(
+                    color: positive ? Colors.white : theme.colorScheme.primary,
+                    fontWeight: FontWeight.w700)),
+          ),
+        ),
+      ],
     );
   }
 }
