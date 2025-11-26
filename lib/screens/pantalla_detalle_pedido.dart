@@ -3,12 +3,12 @@ import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../modelos/pedido.dart';
 import '../servicios/servicio_pedidos.dart';
-import 'order_form_screen.dart';
+import 'pantalla_formulario_pedido.dart';
 import '../utilidades/pantalla.dart';
 
-class OrderDetailScreen extends StatelessWidget {
+class PantallaDetallePedido extends StatelessWidget {
   final Pedido order;
-  const OrderDetailScreen({required this.order, super.key});
+  const PantallaDetallePedido({required this.order, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +30,8 @@ class OrderDetailScreen extends StatelessWidget {
                 : () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (_) => OrderFormScreen(orderId: order.id))),
+                        builder: (_) =>
+                            PantallaFormularioPedido(orderId: order.id))),
           ),
           // Botón para marcar como realizado
           IconButton(

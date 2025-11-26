@@ -7,15 +7,16 @@ import '../servicios/servicio_pedidos.dart';
 import '../utilidades/pantalla.dart';
 import '../servicios/servicio_autenticacion.dart';
 
-class OrderFormScreen extends StatefulWidget {
+class PantallaFormularioPedido extends StatefulWidget {
   final String? orderId;
-  const OrderFormScreen({this.orderId, super.key});
+  const PantallaFormularioPedido({this.orderId, super.key});
 
   @override
-  State<OrderFormScreen> createState() => _OrderFormScreenState();
+  State<PantallaFormularioPedido> createState() =>
+      _PantallaFormularioPedidoState();
 }
 
-class _OrderFormScreenState extends State<OrderFormScreen> {
+class _PantallaFormularioPedidoState extends State<PantallaFormularioPedido> {
   final _formKey = GlobalKey<FormState>();
   final _customerCtrl = TextEditingController();
   final _fabricCtrl = TextEditingController();

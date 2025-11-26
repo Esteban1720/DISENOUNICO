@@ -7,20 +7,20 @@ import '../servicios/servicio_pedidos.dart';
 import '../servicios/servicio_autenticacion.dart';
 import '../modelos/pedido.dart';
 import '../componentes/ficha_pedido.dart';
-import 'order_form_screen.dart';
-import 'order_detail_screen.dart';
-import 'profile_screen.dart';
+import 'pantalla_formulario_pedido.dart';
+import 'pantalla_detalle_pedido.dart';
+import 'pantalla_perfil.dart';
 import '../utilidades/pantalla.dart';
 import '../theme.dart'; // Importa tu tema global
 
-class OrdersListScreen extends StatefulWidget {
-  const OrdersListScreen({super.key});
+class PantallaListaPedidos extends StatefulWidget {
+  const PantallaListaPedidos({super.key});
 
   @override
-  State<OrdersListScreen> createState() => _OrdersListScreenState();
+  State<PantallaListaPedidos> createState() => _PantallaListaPedidosState();
 }
 
-class _OrdersListScreenState extends State<OrdersListScreen> {
+class _PantallaListaPedidosState extends State<PantallaListaPedidos> {
   String _statusFilter = 'pending';
 
   @override
@@ -111,7 +111,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                       onPressed: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (_) => const ProfileScreen()),
+                            builder: (_) => const PantallaPerfil()),
                       ),
                     ),
                   ],
@@ -241,7 +241,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => OrderDetailScreen(order: o),
+                                builder: (_) => PantallaDetallePedido(order: o),
                               ),
                             ),
                           ),
@@ -259,7 +259,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> {
         backgroundColor: theme.colorScheme.primary,
         onPressed: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const OrderFormScreen()),
+          MaterialPageRoute(builder: (_) => const PantallaFormularioPedido()),
         ),
         child: const Icon(Icons.add, color: Colors.white),
       ),

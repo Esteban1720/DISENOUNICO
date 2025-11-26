@@ -8,8 +8,8 @@ import 'package:provider/provider.dart';
 import 'servicios/servicio_pedidos.dart';
 import 'servicios/servicio_autenticacion.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'screens/orders_list_screen.dart';
-import 'screens/login_screen.dart';
+import 'screens/pantalla_lista_pedidos.dart';
+import 'screens/pantalla_login.dart';
 import 'theme.dart';
 import 'servicios/servicio_notificaciones.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -187,8 +187,8 @@ class _RootState extends State<_Root> {
     if (!_loaded) return const SizedBox.shrink();
     final auth = Provider.of<ServicioAutenticacion>(context);
     if (!auth.estaLogueado) {
-      return const LoginScreen();
+      return const PantallaLogin();
     }
-    return const OrdersListScreen();
+    return const PantallaListaPedidos();
   }
 }

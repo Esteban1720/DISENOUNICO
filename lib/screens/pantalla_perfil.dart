@@ -1,18 +1,17 @@
-// lib/screens/profile_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../servicios/servicio_autenticacion.dart';
 import '../servicios/servicio_pedidos.dart';
 import '../utilidades/pantalla.dart';
 
-class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+class PantallaPerfil extends StatefulWidget {
+  const PantallaPerfil({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  State<PantallaPerfil> createState() => _PantallaPerfilState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _PantallaPerfilState extends State<PantallaPerfil> {
   bool _saving = false;
   late TextEditingController _nameCtrl;
 
@@ -117,8 +116,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             : const Text('Cambiar foto'),
                         onPressed: _saving ? null : _pickAndUpload),
                     SizedBox(height: context.altoPct(0.03)),
-
-                    // Etiqueta fuera del TextField
                     const Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
@@ -130,7 +127,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     SizedBox(height: context.altoPct(0.01)),
-
                     TextField(
                       controller: _nameCtrl,
                       style: const TextStyle(color: Colors.white),
@@ -148,7 +144,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                     ),
-
                     SizedBox(height: context.altoPct(0.02)),
                     Row(children: [
                       Expanded(

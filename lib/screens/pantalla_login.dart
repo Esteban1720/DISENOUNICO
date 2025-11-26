@@ -1,4 +1,4 @@
-// lib/screens/login_screen.dart
+// lib/screens/pantalla_login.dart
 // ignore_for_file: use_build_context_synchronously
 // Versión: logo más grande y desplazado un poquito hacia arriba.
 
@@ -8,14 +8,14 @@ import 'package:provider/provider.dart';
 import '../servicios/servicio_autenticacion.dart';
 import '../utilidades/pantalla.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class PantallaLogin extends StatefulWidget {
+  const PantallaLogin({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<PantallaLogin> createState() => _PantallaLoginState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _PantallaLoginState extends State<PantallaLogin> {
   final _formKey = GlobalKey<FormState>();
   final _userCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
